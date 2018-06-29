@@ -1,16 +1,8 @@
 
-# coding: utf-8
-
-# In[1]:
-
-
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import numpy as np
-
-
-# In[29]:
 
 
 class Input:
@@ -76,30 +68,32 @@ class Input:
 
     def pairs(self, window_size,batch_size=None):
         if batch_size==None:
-            batch_size = Pair_count(self,window_size)
-        self.input_file = open(self.input_path, encoding = "utf8")
-        pairs = list()
-        word_idx = list()
-        while len(pairs)<batch_size:
-            for para in self.input_file:
-                lines = para.split('|')
+            batch_size = self.Pair_count(self,window_size)
+        while pairs<batch_size:
+            text = self.input_file.readlines()
+            if self.input_file == '' or self.input_file == None:
+                self.input_file = open(self.input_path, encoding = "utf8")
+                text = self.input_file.readlines()
+                
+            pairs = list()
+            word_idx = list()
+            for lines in text:
+                lines = lines.strip().split('|')
                 for line in lines:
                     line = line.split(' ')
                     for word in line:
                         word_idx.append(self.word2id[word])
-        
-        for pos,u in enumerate(word_idx):
-            for v in word_idx[max(i-window_size,0),min(i+window_size,len(word_idx))]:
-                pairs.append((u,v))
-                
-        return np.array(word_idx)
+
+            for pos,u in enumerate(word_idx):
+                for v in word_idx[max(i-window_size,0),min(i+window_size,len(word_idx))]:
+                    if u==v: continue:
+                    pairs.append((u,v))
+
+        return pairs
                         
                         
     def Pair_Count(self,window):
         return (2*self.word_count-1)*window
-
-
-# In[ ]:
 
 
 class SGNS(nn.Module):
@@ -123,9 +117,6 @@ class SGNS(nn.Module):
         neg_pred = F.logsigmoid(-1 * neg_score)
         
         return -1 * (torch.sum(pred)+torch.sum(neg_pred))
-
-
-# In[ ]:
 
 
 class Word2Vec:
@@ -154,7 +145,6 @@ class Word2Vec:
             self.batch_count = pairs/self.batch_size
         else:
             self.batch_count = 1
-        self.iterations = iterations
         self.model = SGNS(self.emb_size,self.emb_dim)
         if torch.cuda.is_available():
             self.model.cuda()
